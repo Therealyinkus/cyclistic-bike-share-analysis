@@ -35,13 +35,8 @@ The **top stations used by both casual riders and members** include:
 - **Optimized Bike Fleet and Docking Stations:** Expand bike availability, particularly electric bikes, in high-demand locations.  Introduce smart rebalancing technology to ensure an even distribution of bikes.  
 - **Enhancing Digital Media and Customer Engagement:**  Leverage social media ads, influencer marketing, and referral programs.  Use mobile app notifications to suggest memberships to frequent casual users.
 
-## Repository Structure
-```
-|-- scripts/             # R scripts for data processing
-|-- reports/             # Summary reports and insights
-|-- visualisations/      # contains visualizations
-|-- README.md            # Project overview and instructions
-```
+## View the file
+[Click here to open the Bike Data Report](https://therealyinkus.github.io/cyclistic-bike-share-analysis/docs/bikedata_2024.html)
 
 ## How to Use
 1. Download the dataset from the [trip data]((https://divvy-tripdata.s3.amazonaws.com/index.html)).
