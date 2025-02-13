@@ -27,7 +27,7 @@ The **top stations used by both casual riders and members** include:
   - **Michigan Ave & Oak St**  
   - **Millennium Park**  
 - These locations are close to key business districts and tourist attractions.
-- 
+ 
 ## Recommendations
 - **Targeted Marketing Strategies for Membership Conversion:** Develop membership promotions for casual riders during peak months (May – September).  Introduce trial memberships or tiered plans (e.g., weekly or monthly passes).  
 - **Seasonal Campaigns to Retain Ridership in Winter:** Offer winter discounts and incentives to encourage casual riders. Introduce heated or weather-protected docking stations.  
