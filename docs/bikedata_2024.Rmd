@@ -1,0 +1,725 @@
+---
+title: "Cyclistic Bike-Share Data Analysis"
+author: "Abdulhamid Olayinka"
+date: "2025-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction: Overview of Cyclistic and Project Goals
+```{r, , include=FALSE, echo=FALSE}
+chooseCRANmirror(graphics = FALSE, ind = 1)
+```
+
+### Overview of Cyclistic
+
+Cyclistic is a leading bike-sharing company that provides a sustainable and eco-friendly mode of transportation for urban dwellers. With its fleet of bicycles, Cyclistic aims to reduce traffic congestion and environmental pollution while promoting healthy lifestyles. The company operates in a densely populated city, catering to commuters who need a flexible and convenient transportation option.
+
+Cyclistic offers various membership plans to users, including single ride options and monthly/annual memberships, allowing for tailored usage based on individual preferences and requirements. The company is committed to providing an efficient and accessible biking service for everyone, contributing to the urban mobility ecosystem by offering an alternative to conventional public transportation.
+
+### Project Goal
+
+The primary goal of this project is to analyze Cyclistic’s bike-share usage data to gain insights into customer behavior, identify patterns in bike usage, and assess the effectiveness of different membership plans. By evaluating various factors such as ride duration, membership type, and user demographics, the project seeks to uncover actionable insights that can guide future business strategies and enhance the customer experience.
+
+The project aims to answer key questions regarding membership usage, including whether the type of membership (annual or casual) influences ride patterns, and how Cyclistic can optimize its services to better meet customer needs. The findings of this analysis will provide valuable recommendations for targeted marketing, membership plan adjustments, and service improvements.
+
+## Methodology
+
+### Tools and Approach
+To process and analyze the data, we used the following tools:
+
+- **R**: R is used for data manipulation, analysis, and visualization due to its powerful libraries like `dplyr`, `tidyr`, and `ggplot2` for data cleaning, transformation, and visual exploration.
+- **RStudio**: RStudio serves as the integrated development environment (IDE), which supports R scripting, project organization, and result visualization.
+
+#### Why R?
+R is particularly suited for handling large datasets, especially for operations involving data cleaning, transformation, and statistical analysis. With a wide range of packages and robust community support, R ensures flexibility and scalability when working with complex datasets.
+
+## Data Preparation (Data sources, cleaning process)
+
+In this section, I describe the process of preparing Cyclistic’s historical trip data for analysis
+
+### Data Location and Organization
+The Cyclistic trip data is available for download and covers the previous 12 months of trips. This public data, made available by Motivate International Inc., is intended for analysis, providing insights into customer behavior without violating privacy rules.
+
+#### Data Location:
+ The datasets can be found at [Cyclistic's Trip Data](https://divvy-tripdata.s3.amazonaws.com/index.html).
+- The data is stored in CSV format and consists of several files from different months, each containing trip-related details for that month.
+
+##### Installing Packages
+```{r, eval=FALSE, cache=TRUE}
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("scales")
+```
+##### Loading packages
+```{r, results='hide', cache=TRUE}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+##### Setting the working directory to the folder containing the datasets of the previous 12 months
+```{r, cache=TRUE}
+setwd("C:/Users/USER/Desktop/Data Analytics Project/about_bike_sharing_last_12_month/")
+```
+
+##### Listing all files in the directory containing monthly data
+```{r, results='hide', cache=TRUE}
+file_list <- list.files(pattern = "*.csv", full.names = TRUE)
+```
+
+##### Displaying the list of files
+```{r}
+print(file_list)
+```
+
+##### Looping through each file in the directory and preview
+```{r, eval=FALSE, cache=TRUE}
+for (file in file_list) {
+  cat("Preview of file:", file, "\n")
+  data_preview <- read_csv(file, n_max = 5)
+  print(data_preview)
+  cat("Structure of the dataset:\n")
+  print(str(data_preview))
+  cat("\n-----------------------------------\n")
+}
+```
+
+##### Reading and combine]ing all 12 datasets
+```{r, cache=TRUE}
+bikedata_2024 <- file_list %>%
+  lapply(read.csv) %>%
+  bind_rows()
+```
+
+##### previewing the combined datasets
+```{r, cache=TRUE}
+head(bikedata_2024)
+```
+
+##### Saving the combined data as a new file
+```{r, results='hide', cache=TRUE}
+write.csv(bikedata_2024, "C:/Users/USER/Desktop/Data Analytics Project/2024_cyclistic_bikesharing_data.csv", row.names = FALSE)
+```
+
+##### Viewing the Structure of the dataset
+```{r, cache=TRUE}
+str(bikedata_2024)
+colnames(bikedata_2024)
+glimpse(bikedata_2024)
+```
+
+##### Making a copy of the dataset
+```{r, results='hide', cache=TRUE}
+data <- bikedata_2024
+```
+
+#### Data Organization:
+The data is organized by individual trip records, with each row representing one bike trip, and each column containing attributes such as ride_id, rideable_type, started_at, ended_at, start_lat, start_lng, end_lat, end_lng, start_station_name, start_station_id, end_station_name and member_casual.
+
+**ride_id**: A unique identifier for each bike ride, used to track and distinguish individual trips.
+
+**rideable_type**: Specifies the type of bike used for the ride. It can either be an electric bike ("electric") or a classic pedal bike ("classic").
+
+**started_at**: The timestamp indicating when the ride began (start time).
+
+**ended_at**: The timestamp indicating when the ride ended (end time).
+
+**start_station_name**: The name of the station where the bike ride began (usually a bike docking station or rental location).
+
+**start_station_id**: A unique identifier for the station where the ride started.
+
+**end_station_id**: A unique identifier for the station where the ride ended.
+
+**start_lat**: The latitude coordinate of the start station or the starting point of the ride.
+
+**start_lng**: The longitude coordinate of the start station or the starting point of the ride.
+
+**end_lat**: The latitude coordinate of the end station or the ending point of the ride.
+
+**end_lng**: The longitude coordinate of the end station or the ending point of the ride.
+
+**end_station_name**: The name of the station where the bike ride ended.
+
+**member_casual**: Specifies the type of user taking the ride. "Member" refers to subscribers (frequent riders with membership), while "casual" refers to one-time or occasional riders who pay for single rides.
+
+- The datasets are named according to the month and year (e.g., `202402-divvy-tripdata.csv`).
+
+
+### Data Cleaning Process
+To ensure the data is suitable for analysis, several cleaning tasks are performed:
+
+- **Missing Values:** Identified and handled missing data by acknowledging that some columns had blank cells. Since certain columns were not critical for analysis, instead of removing them, I created separate dataframes containing only the necessary columns, ensuring no blank cells in those. These cleaned dataframes were then used for analysis, maintaining the integrity of the data without unnecessary exclusions.
+
+#### Checking for blank/null cells
+```{r, cache=TRUE}
+colSums(data == "" | is.na(data))
+```
+
+#### Checking duplicate entries by ride_id
+```{r, cache=TRUE}
+duplicate_entries = data[duplicated(data$ride_id), ]
+nrow(duplicate_entries)
+```
+
+#### Removing duplicates with distinct
+```{r, results='hide', cache=TRUE}
+distinct_data = distinct(data)
+```
+  
+### Data Credibility and Integrity
+The Cyclistic trip data has been made publicly available and comes from a reputable source (Motivate International Inc.). However, we acknowledge that while the data is anonymized, there are limitations in its ability to track individual customer behavior over multiple trips.
+
+### Addressing Privacy:
+- The data does not include personally identifiable information (PII), ensuring compliance with privacy laws. No connections are made between trips and customers beyond the general attributes of casual or registered users.
+
+### Verifying Data Integrity:
+- Cross-referenced data from multiple months to ensure consistency across different datasets.
+- Ensured no duplicate entries existed in the data for each trip by checking unique identifiers.
+
+###  Business Relevance
+The cleaned and prepared data helps answer key business questions regarding the usage patterns of casual versus registered riders. By analyzing metrics like trip duration, frequency of use, and time of use, we can derive insights into how these customer types interact with Cyclistic bikes and identify opportunities for optimizing services.
+
+###  Addressing Data Issues
+While the data is generally reliable, it is important to note that certain biases may exist due to the anonymous nature of the customer information. For example, the data cannot provide insights into customer demographics or specific behaviors tied to particular individuals.
+
+This data preparation will enable us to carry out the analysis needed to explore trends in bike usage and provide actionable insights for Cyclistic.
+
+## Data Processing
+
+- **Inconsistent Formatting:** Standardized date and time columns into a uniform format, ensuring consistency for analysis.
+
+#### checking the data type of each column
+```{r, cache=TRUE}
+sapply(distinct_data, class)
+```
+
+#### Converting started_at and ended_at to timestamp format
+```{r, cache=TRUE}
+distinct_data <- distinct_data %>%
+  mutate(
+    started_at = as.POSIXct(started_at, format = "%Y-%m-%d %H:%M:%S"),
+    ended_at = as.POSIXct(ended_at, format = "%Y-%m-%d %H:%M:%S")
+  )
+head(distinct_data)
+```
+    
+#### Creating new columns for ride_duration, day_of_week, hour_trip_started, time_of_day(morning, afternoon, evening)
+ To enhance the dataset for analysis, additional columns were created:
+
+**ride_duration:** Calculated as the time difference between ended_at and started_at, representing trip length.
+
+**day_of_week:** Extracted from started_at to indicate the day of the week (e.g., Monday, Tuesday).
+
+**hour_trip_started:** Extracted as the hour (0–23) from started_at, showing the exact time the ride began.
+
+**time_of_day:** Categorized into:
+
+    - Morning (6 AM – 11:59 AM)
+    
+    - Afternoon (12 PM – 5:59 PM)
+    
+    - Evening (6 PM – 11:59 PM)
+  
+```{r, cache=TRUE}
+distinct_data <- distinct_data %>%
+  mutate(
+    ride_duration_mins = as.numeric(difftime(distinct_data$ended_at, distinct_data$started_at), units = "mins"),
+    day_of_week = weekdays(distinct_data$started_at),
+    hour_trip_started = as.numeric(format(distinct_data$started_at, "%H")),
+    time_of_day = cut(
+      hour_trip_started,
+      breaks = c(-1,11,17,24),
+      labels = c("Morning", "Afternoon", "Evening"),
+      right = TRUE)
+  )  
+  
+head(distinct_data)
+```
+
+#### Renaming member_casual to user_type
+```{r, cache=TRUE}
+colnames(distinct_data)[colnames(distinct_data) == "member_casual"] <- "user_type"
+
+colnames(distinct_data)
+```
+
+#### Filtering outliers to show only ride_duration greater than or equal to 1
+
+##### Checking minimum and maximum of ride_duration_mins then filtering
+```{r, cache=TRUE}
+min(distinct_data$ride_duration_mins)
+max(distinct_data$ride_duration_mins)
+```
+
+```{r, cache=TRUE}
+filtered_data = distinct_data %>%
+  filter(ride_duration_mins > 1 | ride_duration_mins == 1)
+View(filtered_data)
+```
+
+#### Ordering by started_at
+```{r, echo=FALSE, cache=TRUE}
+filtered_data <- filtered_data %>%
+  arrange(started_at)
+```
+
+# Rearranging postion of the columns for easy analysis
+```{r, cache=TRUE}
+filtered_data <- filtered_data %>%
+  relocate(day_of_week, .before = 3) %>%
+  relocate(hour_trip_started, .before = 5) %>%
+  relocate(time_of_day, .before = 6) %>%
+  relocate(ride_duration_mins, .before = 7)
+  
+head(filtered_data)
+```
+
+#### Data overview and summary
+```{r, cache=TRUE}
+summary(filtered_data)
+```
+
+## Exploratory Data Analysis
+
+### Average ride duration for each user_type(member_casual)
+```{r, cache=TRUE}
+filtered_data %>%
+  group_by(user_type) %>%
+  summarize(avg_duration = mean(ride_duration_mins, na.rm = TRUE))
+
+```
+
+### Counting rides by bike type
+```{r, cache=TRUE}
+filtered_data %>%
+  group_by(rideable_type) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count))
+```
+### Most popular start_station_name
+```{r, cache=TRUE}
+filtered_data_with_start_station <- filtered_data %>%
+  filter(filtered_data$start_station_name != "")
+
+filtered_data_with_start_station %>% 
+  group_by(start_station_name) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count))
+
+```
+
+
+### Most popular end_station_name
+```{r, cache=TRUE}
+filtered_data_with_end_station <- filtered_data %>%
+  filter(filtered_data$end_station_name != "")
+
+filtered_data_with_end_station %>% 
+  group_by(end_station_name) %>%
+  summarize(count=n()) %>%
+  arrange(desc(count))
+```
+
+## Data Visualisations
+### Distribution of Rides by User Type
+```{r, cache=TRUE}
+ggplot(filtered_data, aes(x = user_type, fill = user_type)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5, size = 4) +
+  labs(
+    title = "Distribution of Rides by User Type",
+    subtitle = "Comparison between Casual Riders and Annual Members",
+    x = "User Type",
+    y = "Number of Rides",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
+```
+
+### Ride Duration by User Type
+```{r, cache=TRUE}
+ggplot(filtered_data, aes(x = user_type, y = ride_duration_mins, fill = user_type)) +
+  geom_boxplot(outlier.color = "red", outlier.shape = 16, outlier.size = 2) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Ride Duration by User Type",
+    subtitle = "Comparison of Ride Durations Between Members and Casual Riders",
+    x = "User Type",
+    y = "Ride Duration (Minutes)",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) + 
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  ) 
+```
+
+#### by time of day
+```{r, cache=TRUE}
+ggplot(filtered_data, aes(x = user_type, fill = time_of_day)) +
+  geom_bar(position = "dodge") +
+  geom_text(
+    stat = "count",
+    aes(label = after_stat(count)),
+    position = position_dodge(width = 0.9),
+    vjust = -0.5,
+    size = 4
+  ) +
+  labs(
+    title = "Ride Distribution by Time of Day",
+    subtitle = "Comparing ride distribution across user types during different times of the day",
+    x = "User Type",
+    y = "Number of Rides",
+    fill = "Time of Day",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+  facet_wrap(~time_of_day) +
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
+```
+
+### Weekly ride trends
+```{r, cache=TRUE}
+filtered_data$day_of_week <- factor(
+  filtered_data$day_of_week,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+```
+
+#### Grouping data by day of the week and user type
+```{r, cache=TRUE}
+weekly_data <- filtered_data %>%
+  group_by(day_of_week, user_type) %>%
+  summarise(total_rides = n(), .groups = "drop")
+
+ggplot(weekly_data, aes(x = day_of_week, y = total_rides, fill = user_type)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) + 
+  geom_text(
+    aes(label = total_rides),
+    position = position_dodge(width = 0.7),
+    vjust = -0.5,
+    size = 3
+  ) +  
+  labs(
+    title = "Ride Trends by Day of the Week",
+    subtitle = "Weekly patterns in ride usage for casual riders and members",
+    x = "Day of the Week",
+    y = "Number of Rides",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +  annotate(
+    "text",
+    x = 3,  # Position of "Wednesday" on the x-axis
+    y = max(weekly_data$total_rides[weekly_data$user_type == "member"]) * 1.05,
+    label = "Wednesday has the highest rides for members",
+    color = "darkgreen",
+    size = 3,
+    hjust = 0
+  ) +
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title = element_text(size = 14)
+  )
+```
+
+### Week trends (Weekday vs Weekends)
+```{r, cache=TRUE}
+ggplot(filtered_data, aes(x = ifelse(day_of_week %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+, fill = user_type)) +
+  geom_bar(position = "dodge") + 
+  geom_text(stat = "count", aes(label = after_stat(count)), position = position_dodge(width = 0.9), vjust = -0.5, size = 4) +
+  labs(
+    title = "Weekly Ride Trends: Weekday vs. Weekend",
+    subtitle = "Observing ride patterns split by user type across weekdays and weekends",
+    x = "Day Type",
+    y = "Number of Rides",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+  facet_wrap(~user_type, scales = "free_y") +
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
+```
+
+
+#### Hourly ride trends
+```{r, cache=TRUE}
+hourly_data <- filtered_data %>%
+  group_by(hour_trip_started, user_type) %>%
+  summarise(total_rides = n(), .groups = "drop")
+```
+
+###### Finding peaks for each user type
+```{r, cache=TRUE}
+peaks <- hourly_data %>%
+  group_by(user_type) %>%
+  filter(total_rides == max(total_rides)) %>%
+  ungroup()
+
+ggplot(hourly_data, aes(x = hour_trip_started, y = total_rides, color = user_type, group = user_type)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) + 
+  labs(
+    title = "Hourly Ride Trends",
+    subtitle = "Peak usage times for casual riders and members throughout the day",
+    x = "Hour of the Day",
+    y = "Number of Rides",
+    color = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+  
+  geom_segment(data = peaks,
+               aes(x = hour_trip_started - 0.5, xend = hour_trip_started, 
+                   y = total_rides - 50, yend = total_rides), 
+               arrow = arrow(length = unit(0.2, "cm")), color = "green") +
+  
+  geom_text(data = peaks, 
+            aes(x = hour_trip_started, y = total_rides + 55, 
+                label = paste("Peak:", total_rides, "rides")), 
+            color = "black", fontface = "bold", size = 3) +
+  scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
+```
+
+
+### top 10 popular start stations
+
+```{r, cache=TRUE}
+top_stations <- filtered_data_with_start_station %>%
+  count(start_station_name, user_type) %>%
+  arrange(desc(n)) %>% 
+  head(10)
+
+ggplot(top_stations, aes(x = n, y = reorder(start_station_name, n), fill = user_type)) +
+  geom_bar(stat = "identity", width = 0.7) +  
+  geom_text(aes(label = n), hjust = -0.3, size = 3) +  
+  labs(
+    title = "Top 10 Popular Start Stations",
+    subtitle = "Most frequently used start stations by user type",
+    x = "Number of Rides",
+    y = "Start Station",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+ 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 12, angle = 45, hjust = 1),  
+    axis.title = element_text(size = 14)
+  ) +
+  coord_flip()
+```
+
+
+### seasonal trends
+#### Convert 'month' column to a factor with proper levels (January to December)
+```{r, cache=TRUE}
+filtered_data$month <- factor(format(as.Date(filtered_data$started_at), "%B"),
+                              levels = c("January", "February", "March", "April", "May", "June", 
+                                         "July", "August", "September", "October", "November", "December"))
+```
+
+#### Summarize monthly data by user type using stacked bar chart
+```{r, cache=TRUE}
+# Convert month to an ordered factor from January to December
+monthly_data <- filtered_data %>%
+  mutate(month = factor(month, levels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"), 
+                                        ordered = TRUE)) %>%
+  group_by(month, user_type) %>%
+  summarise(total_rides = n(), .groups = "drop")
+
+# Plot the stacked bar chart
+ggplot(monthly_data, aes(x = month, y = total_rides, fill = user_type)) +
+  geom_col(position = "stack", width = 0.7) +  
+  geom_text(aes(label = total_rides), position = position_stack(vjust = 0.5), size = 2, color = "white") + 
+  labs(
+    title = "Monthly Ride Trends",
+    subtitle = "Seasonal patterns in rides for casual riders and members",
+    x = "Month",
+    y = "Number of Rides",
+    fill = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+  annotate(
+    "text", x = 4, y = 830000, label = "September shows the highest total rides, with members contributing the most", color = "purple", size = 3, hjust = 0
+  ) +
+  scale_y_continuous(labels = scales::label_number()) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+### Distribution over the year
+##### Creating a new column for Date and extracting the day and month
+```{r, cache=TRUE}
+filtered_data$day_of_year <- as.numeric(format(as.Date(filtered_data$started_at), "%j"))
+filtered_data$month <- format(as.Date(filtered_data$started_at), "%B")
+```
+
+##### Grouping data by day and user type
+```{r, cache=TRUE}
+daily_data <- filtered_data %>%
+  group_by(day_of_year, user_type) %>%
+  summarise(total_rides = n(), .groups = "drop")
+```
+
+### Creating a line chart for daily ride distribution across the year
+```{r, cache=TRUE}
+ggplot(daily_data, aes(x = day_of_year, y = total_rides, color = user_type, group = user_type)) +
+  geom_line(linewidth = 1.2) +  
+  geom_point(size = 2) + 
+  labs(
+    title = "Daily Ride Distribution Over the Year",
+    subtitle = "Trends in ride usage for casual riders and members across the year",
+    x = "Months across the year",
+    y = "Number of Rides",
+    color = "User Type",
+    caption = "Data Source: Cyclistic Bike-Share Program"
+  ) +
+   scale_y_continuous(labels = label_number()
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  ) +
+  scale_x_continuous(
+    breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")  # Month labels
+  ) +
+  scale_color_manual(values = c("blue", "darkgreen"))  
+```
+
+
+## Interpretation of Insights  
+
+### Ride Duration Analysis  
+- **Casual riders have significantly longer ride durations** (25.93 minutes on average) compared to annual members (12.99 minutes).  
+- This suggests that **casual riders primarily use the service for leisure or sightseeing**, whereas **members rely on it for short, frequent commutes**.  
+- The longer duration among casual riders may indicate **a lower urgency in their trips**, suggesting they use the service for exploration rather than necessity.  
+
+### Rideable Type Preference 
+- **Electric bikes are the most frequently used ride type** (2,869,398 rides), followed by classic bikes (2,722,302 rides). Electric scooters have the lowest usage (137,612 rides).  
+- The popularity of **electric bikes suggests a preference for faster and less physically demanding rides**, which could be leveraged to promote membership among casual users.  
+- Classic bikes remain competitive, indicating they are a viable option for those who prefer traditional biking experiences.  
+
+### Daily Ride Distribution Over the Year  
+- **Ride usage peaks between May and September** (warmer months) and significantly drops between November and February (colder months).  
+- **Both casual riders and members follow similar seasonal trends**, but members still maintain a steady ride volume in winter, unlike casual riders.  
+- This pattern suggests that casual riders are more **weather-dependent**, possibly using the service for recreational purposes.  
+- **Marketing efforts should focus on engaging casual riders during peak months to encourage membership sign-ups.**  
+
+### Ride Distribution by Time of Day
+- **Afternoon (12 PM – 5 PM) has the highest ride volume** across both casual riders and members.  
+- **Casual riders spike in the afternoon, reinforcing the assumption that they use the service for leisure.**  
+- **Members maintain a more balanced ride pattern throughout the day**, suggesting work commutes play a significant role in their usage.  
+- **This insight suggests that pricing incentives and promotional campaigns targeting morning rides could help increase ridership during non-peak hours.**  
+
+### Most Popular Start and End Stations 
+- The **top stations used by both casual riders and members** include:  
+  - **Streeter Dr & Grand Ave** (Most popular start & end station)  
+  - **DuSable Lake Shore Dr & Monroe St**  
+  - **Kingsbury St & Kinzie St**  
+  - **Michigan Ave & Oak St**  
+  - **Millennium Park**  
+- **These locations are close to key business districts and tourist attractions**, further supporting the idea that casual riders are more likely to be tourists or leisure users.  
+- **Expanding docking stations in these high-traffic areas and offering exclusive member benefits at these locations can help attract more memberships.**  
+
+
+## Business Recommendations 
+
+### Targeted Marketing Strategies for Membership Conversion**  
+- **Develop membership promotions for casual riders during peak months** (May – September) when ridership is highest.  
+- **Introduce trial memberships or tiered plans** (e.g., weekly or monthly passes) to encourage casual users to transition into annual memberships.  
+- **Highlight cost savings in marketing campaigns**, emphasizing the financial benefits of a membership over frequent one-time rides.  
+
+### Seasonal Campaigns to Retain Ridership in Winter 
+- **Offer winter discounts and incentives** to encourage casual riders to continue using the service in colder months.  
+- **Introduce heated or weather-protected docking stations** at high-traffic areas to improve winter ridership experience.  
+- **Promote flexible ride options** (such as bundled winter subscriptions or pay-per-season membership offers).  
+
+### Incentivizing Morning and Evening Rides
+- **Casual riders mostly use bikes in the afternoon**, creating an imbalance in usage patterns.  
+- **Offering discounts or loyalty rewards for morning and evening rides** can help distribute demand throughout the day.  
+- **Introducing partnerships with coffee shops or co-working spaces** for morning riders can enhance incentives to ride early.  
+
+### Optimized Bike Fleet and Docking Stations 
+- **Expand bike availability, particularly electric bikes**, in high-demand locations like Streeter Dr & Grand Ave, Millennium Park, and Michigan Ave & Oak St.  
+- **Increase the number of docking stations or relocate underused bikes** to areas with heavy casual rider traffic.  
+- **Introduce smart rebalancing technology** to ensure an even distribution of bikes throughout the city.  
+
+### Enhancing Digital Media and Customer Engagement  
+- **Leverage digital media campaigns (social media ads, influencer marketing, and referral programs)** to promote membership benefits to casual riders.  
+- **Use mobile app notifications to suggest memberships to frequent casual users**, highlighting how they can save on future rides.  
+- **Introduce gamification elements (such as milestone rewards or membership badges)** to encourage casual riders to use the service more frequently.  
+
+
+## Summary of Findings 
+1. **Casual riders take significantly longer trips compared to members**, indicating they use the service for leisure rather than short commutes.  
+2. **Electric bikes are the most preferred ride type**, highlighting a demand for convenience and speed.  
+3. **Seasonality plays a crucial role**, with peak usage in warmer months and a significant decline in winter.  
+4. **Afternoon is the busiest period**, showing an opportunity to optimize bike availability and redistribute demand.  
+5. **Popular stations are concentrated in key tourist and business areas**, reinforcing the recreational nature of casual rides.  
+
+
+## Conclusion
+The analysis of Cyclistic's historical bike trip data has provided valuable insights into the differences between casual riders and annual members. The data highlights include Casual riders are primarily leisure users, while members use the service more consistently for commuting. Seasonal and daily patterns influence ridership, suggesting strategic marketing efforts should align with these trends.Membership promotions, seasonal incentives, and digital engagement strategies can effectively convert casual riders into long-term members.  
+
+To achieve goal of increasing annual memberships, the company should focus on:  
+✅ **Promotional campaigns targeting casual riders during peak seasons**  
+✅ **Offering flexible membership options and exclusive discounts**  
+✅ **Optimizing bike distribution, especially electric bikes, in high-demand areas**  
+✅ **Expanding digital engagement through mobile app recommendations and social media marketing**  
+
+By implementing these strategies, **Cyclistic can maximize customer engagement, improve operational efficiency, and drive long-term membership growth** in an increasingly competitive bike-share market.  
