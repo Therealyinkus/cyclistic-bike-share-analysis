@@ -23,6 +23,7 @@ jobs:
       run: |
         Rscript -e "install.packages('rmarkdown')"
         Rscript -e "install.packages('knitr')"
+        Rscript -e "install.packages('tidyverse')"
 
     - name: Render RMD file
       run: |
