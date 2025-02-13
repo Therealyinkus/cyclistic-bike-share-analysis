@@ -26,7 +26,7 @@ jobs:
 
     - name: Render RMD file
       run: |
-        Rscript -e "rmarkdown::render('path/to/your/file.Rmd')"
+        Rscript -e "rmarkdown::render('bikedata_2024.Rmd')"
 
     - name: Commit rendered HTML
       run: |
